@@ -1,5 +1,5 @@
 import { View } from 'react-native'
-import ColorList from '../components/ColorList'
+import ColorList from '../../components/ColorList'
 
 const Create = () => {
   return (
