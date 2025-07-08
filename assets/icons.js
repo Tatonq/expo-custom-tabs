@@ -1,10 +1,12 @@
-import { AntDesign, Feather } from "@expo/vector-icons";
+import { AntDesign, Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export const icons = {
-    index: (props)=> <AntDesign name="home" size={26} {...props} />,
+    index: (props) => <AntDesign name="home" size={26} {...props} />,
+    scan: (props) => <MaterialCommunityIcons name="qrcode-scan" size={26} {...props} />,
+    cart: (props) => <Ionicons name="cart-outline" size={26} {...props} />,
+    profile: (props) => <AntDesign name="user" size={26} {...props} />,
     explore: (props)=> <Feather name="compass" size={26} {...props} />,
     create: (props)=> <AntDesign name="pluscircleo" size={26} {...props} />,
-    profile: (props)=> <AntDesign name="user" size={26} {...props} />,
     // เพิ่มชื่อแทนที่อื่นๆ ที่อาจเกิดขึ้น
     home: (props)=> <AntDesign name="home" size={26} {...props} />,
     '(auth)': (props)=> <AntDesign name="login" size={26} {...props} />,

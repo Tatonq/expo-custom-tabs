@@ -1,181 +1,289 @@
-import { Link, router } from 'expo-router'
-import { useState } from 'react'
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
-import { useAuth } from '../../utils/auth'
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import useProductsStore from '../../stores/productsStore';
+import useUserStore from '../../stores/userStore';
+import { mockCheckEmployeeAccess } from '../../utils/mockData';
 
-export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
-
+export default function LoginScreen() {
+  const [employeeId, setEmployeeId] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  const router = useRouter();
+  const { setEmployeeInfo, setAccessibleMerchants } = useUserStore();
+  const initMockData = useProductsStore(state => state.initMockData);
+  
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('ข้อผิดพลาด', 'กรุณากรอกอีเมลและรหัสผ่าน')
-      return
+    if (!employeeId) {
+      Alert.alert('ข้อผิดพลาด', 'กรุณากรอกรหัสพนักงาน');
+      return;
     }
-
-    setLoading(true)
+    
+    setLoading(true);
+    
     try {
-      await signIn(email, password)
-      router.replace('/')
+      // จำลองการเรียก API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // ตรวจสอบว่าพนักงานมีสิทธิ์เข้าถึงร้านค้าใดบ้าง
+      const accessibleMerchants = mockCheckEmployeeAccess(employeeId);
+      
+      if (accessibleMerchants.length === 0) {
+        Alert.alert('ข้อผิดพลาด', 'ไม่พบสิทธิ์การเข้าถึงร้านค้า โปรดติดต่อผู้ดูแลระบบ');
+        setLoading(false);
+        return;
+      }
+      
+      // บันทึกข้อมูลพนักงานลงใน store
+      setEmployeeInfo(employeeId, `พนักงาน ${employeeId}`);
+      
+      // บันทึกรายการร้านค้าที่เข้าถึงได้
+      setAccessibleMerchants(accessibleMerchants);
+      
+      // สร้างข้อมูล mock สำหรับสินค้า
+      initMockData();
+      
+      // นำทางไปยังหน้าเลือกร้านค้า
+      router.replace('/(auth)/select-merchant');
+      
     } catch (error) {
-      Alert.alert('ข้อผิดพลาด', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+      Alert.alert('ข้อผิดพลาด', error.message || 'ไม่สามารถเข้าสู่ระบบได้');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title}>ยินดีต้อนรับ</Text>
-            <Text style={styles.subtitle}>เข้าสู่ระบบเพื่อเริ่มต้นใช้งาน</Text>
-          </View>
-
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>อีเมล</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="กรอกอีเมลของคุณ"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>รหัสผ่าน</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="กรอกรหัสผ่านของคุณ"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="password"
-              />
-            </View>
-
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Link href="/forgot-password" style={styles.forgotPasswordText}>
-                ลืมรหัสผ่าน?
-              </Link>
-            </TouchableOpacity>
-
+      <View style={styles.content}>
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../assets/logo.png')} 
+            style={styles.logo}
+            defaultSource={require('../../assets/logo-placeholder.png')}
+          />
+          <Text style={styles.appName}>Multi-merchant POS</Text>
+        </View>
+        
+        <Text style={styles.loginTitle}>เข้าสู่ระบบ</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>รหัสพนักงาน</Text>
+          <TextInput 
+            style={styles.input}
+            placeholder="กรอกรหัสพนักงาน เช่น emp1234"
+            value={employeeId}
+            onChangeText={setEmployeeId}
+            autoCapitalize="none"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>รหัสผ่าน</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput 
+              style={styles.passwordInput}
+              placeholder="กรอกรหัสผ่าน (เวอร์ชันทดลองไม่ต้องกรอก)"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
             <TouchableOpacity 
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(!showPassword)}
             >
-              <Text style={styles.loginButtonText}>
-                {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
-              </Text>
+              <Text>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>ยังไม่มีบัญชี? </Text>
-            <Link href="/register" style={styles.registerLink}>
-              สมัครสมาชิก
-            </Link>
           </View>
         </View>
-      </TouchableWithoutFeedback>
+        
+        <View style={styles.checkboxRow}>
+          <TouchableOpacity 
+            style={styles.checkbox}
+            onPress={() => setRememberMe(!rememberMe)}
+          >
+            <View style={[
+              styles.checkboxBox, 
+              rememberMe && styles.checkboxChecked
+            ]}>
+              {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxLabel}>จดจำรหัสพนักงาน</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <Text style={styles.loginButtonText}>เข้าสู่ระบบ</Text>
+          )}
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.forgotPassword}>
+          <Text style={styles.forgotPasswordText}>ลืมรหัสผ่าน?</Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.mockLoginInfo}>
+          สำหรับทดลอง: ใช้รหัส emp1234 (เข้าได้ทั้ง 2 ร้าน) หรือ emp5678 (เข้าได้ร้านคาเฟ่อย่างเดียว)
+        </Text>
+      </View>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f5f5f5',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    padding: 20,
+    justifyContent: 'center',
+    maxWidth: 400,
+    width: '100%',
+    alignSelf: 'center',
   },
-  header: {
+  logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 8,
+  logo: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
+  appName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#0891b2',
+    marginTop: 10,
   },
-  form: {
-    flex: 1,
+  loginTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#1e293b',
   },
   inputGroup: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    backgroundColor: '#f9fafb',
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 30,
-  },
-  forgotPasswordText: {
-    color: '#6366f1',
     fontSize: 14,
+    marginBottom: 8,
+    color: '#475569',
     fontWeight: '500',
   },
-  loginButton: {
-    backgroundColor: '#6366f1',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  loginButtonText: {
-    color: '#ffffff',
+  input: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    fontWeight: '600',
   },
-  footer: {
+  passwordContainer: {
     flexDirection: 'row',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto',
   },
-  footerText: {
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  checkbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 4,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  checkboxChecked: {
+    backgroundColor: '#0891b2',
+    borderColor: '#0891b2',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 12,
+  },
+  checkboxLabel: {
+    color: '#64748b',
     fontSize: 14,
-    color: '#6b7280',
   },
-  registerLink: {
-    color: '#6366f1',
+  loginButton: {
+    backgroundColor: '#0891b2',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#93c5fd',
+  },
+  loginButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  forgotPassword: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  forgotPasswordText: {
+    color: '#0891b2',
     fontSize: 14,
-    fontWeight: '600',
   },
-})
+  mockLoginInfo: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+  }
+});

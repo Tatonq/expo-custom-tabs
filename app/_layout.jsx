@@ -1,136 +1,37 @@
-// import { Tabs } from 'expo-router'
-// import TabBar from '../components/TabBar'
-
-// export default function RootLayout() {
-//   return (
-//     <Tabs 
-//       tabBar={props => <TabBar {...props} />}
-//       screenOptions={{
-//         headerShown: false, // ซ่อน header ของ Tabs เพื่อให้ Stack ใน tab แสดง header
-//         tabBarHideOnKeyboard: true, // ซ่อน tab bar เมื่อเปิดคีย์บอร์ด
-//       }}
-//     >
-//       <Tabs.Screen
-//         name="index"
-//         options={{
-//           title: 'Home',
-//           tabBarLabel: 'Home',
-//           href: '/index',
-//         }}
-//       />
-//       <Tabs.Screen
-//         name="explore"
-//         options={{
-//           title: 'Explore',
-//           tabBarLabel: 'Explore',
-//           href: '/explore',
-//         }}
-//       />
-//       <Tabs.Screen
-//         name="create"
-//         options={{
-//           title: 'Create',
-//           tabBarLabel: 'Create',
-//           href: '/create',
-//         }}
-//       />
-//       <Tabs.Screen
-//         name="profile"
-//         options={{
-//           title: 'Profile',
-//           tabBarLabel: 'Profile',
-//           href: '/profile',
-//         }}
-//       />
-//     </Tabs>
-//   )
-// }
-
-import { Slot, Tabs, useRouter, useSegments } from 'expo-router';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import TabBar from '../components/TabBar';
-import { AuthProvider, useAuth } from '../utils/auth';
 
-// สร้างฟังก์ชัน Context สำหรับการจัดการ authentication
-function RootLayoutNav() {
-  const { user, isLoading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    // รอจนกว่าจะโหลดข้อมูล user เสร็จ
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-
-    // ถ้าไม่มี user และไม่ได้อยู่ในกลุ่ม auth ให้นำทางไปหน้า login
-    if (!user && !inAuthGroup) {
-      router.replace('/login');
-    } else if (user && inAuthGroup) {
-      // ถ้ามี user แล้วแต่ยังอยู่ในหน้า login ให้นำทางไปหน้าหลัก
-      router.replace('/');
-    }
-  }, [user, segments, isLoading]);
-
-  // ถ้ายังโหลดอยู่ให้แสดง loading
-  if (isLoading) {
-    return <Slot />;
-  }
-
-  // ถ้าไม่มี user แสดงหน้า auth
-  if (!user) {
-    return <Slot />;
-  }
-
-  // ถ้ามี user แล้วแสดง Tabs layout
-  return (
-    <Tabs 
-      tabBar={props => <TabBar {...props} />}
-      screenOptions={{
-        headerShown: false, // ซ่อน header ของ Tabs เพื่อให้ Stack ใน tab แสดง header
-        tabBarHideOnKeyboard: true, // ซ่อน tab bar เมื่อเปิดคีย์บอร์ด
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarLabel: 'Home',
-          href: '/index',
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarLabel: 'Explore',
-          href: '/explore',
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          title: 'Create',
-          tabBarLabel: 'Create',
-          href: '/create',
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarLabel: 'Profile',
-          href: '/profile',
-        }}
-      />
-    </Tabs>
-  );
-}
+// อย่าซ่อน splash screen ทันที
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [loaded, error] = useFonts({
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    ...FontAwesome.font,
+  });
+
+  // เมื่อแอปโหลดเสร็จ ให้ซ่อน splash screen
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
+  if (!loaded) {
+    return null;
+  }
+
+  return <RootLayoutNav />;
+}
+
+function RootLayoutNav() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <Stack>
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(app)" options={{ headerShown: false }} />
+    </Stack>
   );
 }
