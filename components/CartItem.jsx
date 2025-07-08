@@ -1,11 +1,11 @@
 import { AntDesign } from '@expo/vector-icons';
 import {
-    Animated,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import useCartStore from '../stores/cartStore';
 
@@ -19,7 +19,7 @@ const CartItem = ({ item, onSwipe }) => {
         <Image
           source={{ uri: item.image || 'https://via.placeholder.com/100' }} 
           style={styles.productImage}
-          defaultSource={require('../assets/placeholder.png')}
+          // defaultSource={require('../assets/placeholder.png')}
         />
         
         <View style={styles.productInfo}>

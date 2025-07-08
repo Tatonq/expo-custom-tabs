@@ -2,14 +2,14 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import CartSwitcher from '../../components/CartSwitcher';
 import MerchantHeader from '../../components/MerchantHeader';
@@ -27,7 +27,21 @@ const ScanScreen = () => {
   const router = useRouter();
   
   // ดึงข้อมูลร้านค้า
-  const selectedMerchant = useUserStore(state => state.getSelectedMerchant());
+  const selectedMerchantId = useUserStore(state => state.selectedMerchantId);
+  const accessibleMerchants = useUserStore(state => state.accessibleMerchants);
+  
+  // หาร้านค้าที่เลือกจาก id
+  const selectedMerchant = accessibleMerchants.find(
+    merchant => merchant.id === selectedMerchantId
+  );
+  
+  // ตั้งค่า currentMerchant ใน cartStore เมื่อ selectedMerchant เปลี่ยน
+  const setCurrentMerchant = useCartStore(state => state.setCurrentMerchant);
+  useEffect(() => {
+    if (selectedMerchant) {
+      setCurrentMerchant(selectedMerchant.id);
+    }
+  }, [selectedMerchant, setCurrentMerchant]);
   
   // ดึงข้อมูลและฟังก์ชันจาก cart store
   const { activeCartId, createCart, cartCount, addToCart } = useCartStore(state => ({

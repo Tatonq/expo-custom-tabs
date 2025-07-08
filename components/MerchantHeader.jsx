@@ -16,11 +16,14 @@ const MerchantHeader = ({ title, showBackButton = false }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const router = useRouter();
   
-  const { selectedMerchant, accessibleMerchants, employeeName } = useUserStore(state => ({
-    selectedMerchant: state.getSelectedMerchant(),
-    accessibleMerchants: state.accessibleMerchants,
-    employeeName: state.employeeName
-  }));
+  const selectedMerchantId = useUserStore(state => state.selectedMerchantId);
+  const accessibleMerchants = useUserStore(state => state.accessibleMerchants);
+  const employeeName = useUserStore(state => state.employeeName);
+  
+  // หาร้านค้าที่เลือกจาก id
+  const selectedMerchant = accessibleMerchants.find(
+    merchant => merchant.id === selectedMerchantId
+  );
   
   if (!selectedMerchant) {
     return (

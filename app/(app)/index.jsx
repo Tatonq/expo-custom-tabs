@@ -1,49 +1,58 @@
-import React, { useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Image
-} from 'react-native';
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useCallback, useEffect, useMemo } from 'react';
+import {
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import MerchantHeader from '../../components/MerchantHeader';
 import useCartStore from '../../stores/cartStore';
 import useUserStore from '../../stores/userStore';
-import MerchantHeader from '../../components/MerchantHeader';
 
 export default function HomeScreen() {
   const router = useRouter();
   
   // ดึงข้อมูลผู้ใช้และร้านค้า
-  const selectedMerchant = useUserStore(state => state.getSelectedMerchant());
+  const selectedMerchantId = useUserStore(state => state.selectedMerchantId);
+  const accessibleMerchants = useUserStore(state => state.accessibleMerchants);
+  
+  // หาร้านค้าที่เลือกจาก id (ใช้ useMemo เพื่อป้องกัน re-render ที่ไม่จำเป็น)
+  const selectedMerchant = useMemo(() => {
+    return accessibleMerchants.find(merchant => merchant.id === selectedMerchantId);
+  }, [accessibleMerchants, selectedMerchantId]);
   
   // ดึงข้อมูลตะกร้า
-  const { 
-    cartCount, 
-    getOldestCarts, 
-    switchCart, 
-    createCart
-  } = useCartStore(state => ({
-    cartCount: state.getCartCount(),
-    getOldestCarts: state.getOldestCarts,
-    switchCart: state.switchCart,
-    createCart: state.createCart
-  }));
+  const cartCount = useCartStore(state => state.getCartCount());
+  const getOldestCarts = useCartStore(state => state.getOldestCarts);
+  const switchCart = useCartStore(state => state.switchCart);
+  const createCart = useCartStore(state => state.createCart);
+  const setCurrentMerchant = useCartStore(state => state.setCurrentMerchant);
   
   // ถ้าไม่มีร้านค้าที่เลือก ให้กลับไปหน้าเลือกร้านค้า
   useEffect(() => {
-    if (!selectedMerchant) {
+    if (!selectedMerchant && accessibleMerchants.length > 0) {
       router.replace('/(auth)/select-merchant');
     }
-  }, [selectedMerchant]);
+  }, [selectedMerchant, accessibleMerchants.length, router]);
   
-  // ดึงตะกร้าที่เก่าที่สุด 3 ใบแรก
-  const oldestCarts = getOldestCarts(3);
+  // ตั้งค่า currentMerchant ใน cartStore เมื่อ selectedMerchant เปลี่ยน
+  useEffect(() => {
+    if (selectedMerchant) {
+      setCurrentMerchant(selectedMerchant.id);
+    }
+  }, [selectedMerchant, setCurrentMerchant]);
   
-  const handleCreateCart = () => {
+  // ดึงตะกร้าที่เก่าที่สุด 3 ใบแรก (ใช้ useMemo เพื่อป้องกัน re-render ที่ไม่จำเป็น)
+  const oldestCarts = useMemo(() => {
+    return getOldestCarts ? getOldestCarts(3) : [];
+  }, [getOldestCarts]);
+  
+  const handleCreateCart = useCallback(() => {
     if (!selectedMerchant) {
       Alert.alert('ข้อผิดพลาด', 'กรุณาเลือกร้านค้าก่อน');
       return;
@@ -51,29 +60,29 @@ export default function HomeScreen() {
     
     createCart(selectedMerchant.id, 'ตะกร้าใหม่');
     router.push('/(app)/scan');
-  };
+  }, [selectedMerchant, createCart, router]);
 
   // แสดงสถานะเวลาของตะกร้า
-  const getCartStatusLabel = (createdAt) => {
+  const getCartStatusLabel = useCallback((createdAt) => {
     const now = new Date();
     const cartTime = new Date(createdAt);
     const diffMinutes = Math.floor((now - cartTime) / (1000 * 60));
     
     if (diffMinutes < 5) return 'เมื่อสักครู่';
-    if (diffMinutes < 60) return ${diffMinutes} นาทีที่แล้ว;
-    if (diffMinutes < 1440) return ${Math.floor(diffMinutes/60)} ชั่วโมงที่แล้ว;
-    return ${Math.floor(diffMinutes/1440)} วันที่แล้ว;
-  };
+    if (diffMinutes < 60) return `${diffMinutes} นาทีที่แล้ว`;
+    if (diffMinutes < 1440) return `${Math.floor(diffMinutes/60)} ชั่วโมงที่แล้ว`;
+    return `${Math.floor(diffMinutes/1440)} วันที่แล้ว`;
+  }, []);
   
   // แสดงไอคอนตามประเภทตะกร้า
-  const getCartTypeIcon = (type) => {
+  const getCartTypeIcon = useCallback((type) => {
     switch (type) {
       case 'inStore': return <FontAwesome5 name="store" size={16} color="#0891b2" />;
       case 'takeAway': return <MaterialIcons name="delivery-dining" size={18} color="#10b981" />;
       case 'reserved': return <MaterialIcons name="event" size={18} color="#8b5cf6" />;
       default: return <FontAwesome5 name="shopping-basket" size={16} color="#64748b" />;
     }
-  };
+  }, []);
   
   // ถ้าไม่มีร้านค้าที่เลือก แสดงหน้าโหลด
   if (!selectedMerchant) {

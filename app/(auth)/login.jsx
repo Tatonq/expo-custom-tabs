@@ -3,7 +3,6 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -74,11 +73,11 @@ export default function LoginScreen() {
     >
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <Image 
+          {/* <Image 
             source={require('../../assets/logo.png')} 
             style={styles.logo}
-            defaultSource={require('../../assets/logo-placeholder.png')}
-          />
+            defaultSource={require('../assets/logo-placeholder.png')}
+          /> */}
           <Text style={styles.appName}>Multi-merchant POS</Text>
         </View>
         

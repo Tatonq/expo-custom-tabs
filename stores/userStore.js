@@ -34,14 +34,6 @@ const useUserStore = create(
         selectedMerchantId: null,
         accessibleMerchants: [],
       }),
-      
-      // Selectors
-      getSelectedMerchant: () => {
-        const state = get();
-        return state.accessibleMerchants.find(
-          merchant => merchant.id === state.selectedMerchantId
-        );
-      },
     }),
     {
       name: 'user-storage',

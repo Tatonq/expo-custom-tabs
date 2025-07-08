@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { nanoid } from 'nanoid/non-secure';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import useUserStore from './userStore';
 
 // สร้าง store สำหรับระบบตะกร้า
 const useCartStore = create(
@@ -13,13 +12,15 @@ const useCartStore = create(
       // ปรับโครงสร้างให้แยกตามร้านค้า merchantId -> carts
       merchantCarts: {},        // { merchantId: { cartId: { cart data } } }
       activeCartId: null,       // รหัสตะกร้าที่เลือกใช้งานอยู่
+      currentMerchantId: null,  // เก็บ merchantId ปัจจุบัน
       
       // การกระทำ (Actions)
+      setCurrentMerchant: (merchantId) => set({ currentMerchantId: merchantId }),
+      
       createCart: (merchantId, name = '', note = '', type = 'inStore') => {
         if (!merchantId) {
-          // ถ้าไม่มี merchantId ให้ใช้ merchantId ที่เลือกอยู่
-          merchantId = useUserStore.getState().selectedMerchantId;
-          if (!merchantId) return null; // ไม่มีร้านค้าที่เลือก
+          console.warn('merchantId is required for createCart');
+          return null;
         }
         
         const cartId = `cart-${merchantId}-${Date.now()}-${nanoid(4)}`;
@@ -49,6 +50,7 @@ const useCartStore = create(
               }
             },
             activeCartId: cartId,
+            currentMerchantId: merchantId,
           };
         });
         
@@ -57,10 +59,11 @@ const useCartStore = create(
       
       switchCart: (cartId) => {
         // ตรวจสอบว่ามีตะกร้านี้อยู่หรือไม่
-        const merchantId = useUserStore.getState().selectedMerchantId;
+        const state = get();
+        const merchantId = state.currentMerchantId;
         if (!merchantId) return false;
         
-        const merchantCarts = get().merchantCarts[merchantId] || {};
+        const merchantCarts = state.merchantCarts[merchantId] || {};
         if (!merchantCarts[cartId]) return false;
         
         set({ activeCartId: cartId });
@@ -68,7 +71,7 @@ const useCartStore = create(
       },
       
       deleteCart: (cartId) => set((state) => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
+        const merchantId = state.currentMerchantId;
         if (!merchantId) return state;
         
         const merchantCartsObj = {...state.merchantCarts[merchantId]};
@@ -94,7 +97,7 @@ const useCartStore = create(
       }),
       
       renameCart: (cartId, name) => set((state) => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
+        const merchantId = state.currentMerchantId;
         if (!merchantId) return state;
         
         const merchantCartsObj = state.merchantCarts[merchantId];
@@ -115,9 +118,10 @@ const useCartStore = create(
       }),
       
       updateCartType: (cartId, type) => set((state) => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
+        const merchantId = state.currentMerchantId;
         if (!merchantId) return state;
-const merchantCartsObj = state.merchantCarts[merchantId];
+        
+        const merchantCartsObj = state.merchantCarts[merchantId];
         if (!merchantCartsObj || !merchantCartsObj[cartId]) return state;
         
         return {
@@ -135,7 +139,7 @@ const merchantCartsObj = state.merchantCarts[merchantId];
       }),
       
       addCartNote: (cartId, note) => set((state) => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
+        const merchantId = state.currentMerchantId;
         if (!merchantId) return state;
         
         const merchantCartsObj = state.merchantCarts[merchantId];
@@ -156,7 +160,7 @@ const merchantCartsObj = state.merchantCarts[merchantId];
       }),
       
       markCartNotified: (cartId) => set((state) => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
+        const merchantId = state.currentMerchantId;
         if (!merchantId) return state;
         
         const merchantCartsObj = state.merchantCarts[merchantId];
@@ -177,13 +181,10 @@ const merchantCartsObj = state.merchantCarts[merchantId];
       }),
       
       addToCart: (product) => set((state) => {
-        const { activeCartId } = state;
-        if (!activeCartId) return state;
+        const { activeCartId, currentMerchantId } = state;
+        if (!activeCartId || !currentMerchantId) return state;
         
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return state;
-        
-        const merchantCartsObj = state.merchantCarts[merchantId];
+        const merchantCartsObj = state.merchantCarts[currentMerchantId];
         if (!merchantCartsObj) return state;
         
         const currentCart = merchantCartsObj[activeCartId];
@@ -211,7 +212,7 @@ const merchantCartsObj = state.merchantCarts[merchantId];
         return {
           merchantCarts: {
             ...state.merchantCarts,
-            [merchantId]: {
+            [currentMerchantId]: {
               ...merchantCartsObj,
               [activeCartId]: {
                 ...currentCart,
@@ -224,13 +225,10 @@ const merchantCartsObj = state.merchantCarts[merchantId];
       }),
       
       removeFromCart: (productId) => set((state) => {
-        const { activeCartId } = state;
-        if (!activeCartId) return state;
+        const { activeCartId, currentMerchantId } = state;
+        if (!activeCartId || !currentMerchantId) return state;
         
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return state;
-        
-        const merchantCartsObj = state.merchantCarts[merchantId];
+        const merchantCartsObj = state.merchantCarts[currentMerchantId];
         if (!merchantCartsObj) return state;
         
         const currentCart = merchantCartsObj[activeCartId];
@@ -242,9 +240,9 @@ const merchantCartsObj = state.merchantCarts[merchantId];
         const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
         return {
-merchantCarts: {
+          merchantCarts: {
             ...state.merchantCarts,
-            [merchantId]: {
+            [currentMerchantId]: {
               ...merchantCartsObj,
               [activeCartId]: {
                 ...currentCart,
@@ -257,13 +255,10 @@ merchantCarts: {
       }),
       
       updateQuantity: (productId, quantity) => set((state) => {
-        const { activeCartId } = state;
-        if (!activeCartId) return state;
+        const { activeCartId, currentMerchantId } = state;
+        if (!activeCartId || !currentMerchantId) return state;
         
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return state;
-        
-        const merchantCartsObj = state.merchantCarts[merchantId];
+        const merchantCartsObj = state.merchantCarts[currentMerchantId];
         if (!merchantCartsObj) return state;
         
         const currentCart = merchantCartsObj[activeCartId];
@@ -286,7 +281,7 @@ merchantCarts: {
         return {
           merchantCarts: {
             ...state.merchantCarts,
-            [merchantId]: {
+            [currentMerchantId]: {
               ...merchantCartsObj,
               [activeCartId]: {
                 ...currentCart,
@@ -299,13 +294,10 @@ merchantCarts: {
       }),
       
       clearCart: () => set((state) => {
-        const { activeCartId } = state;
-        if (!activeCartId) return state;
+        const { activeCartId, currentMerchantId } = state;
+        if (!activeCartId || !currentMerchantId) return state;
         
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return state;
-        
-        const merchantCartsObj = state.merchantCarts[merchantId];
+        const merchantCartsObj = state.merchantCarts[currentMerchantId];
         if (!merchantCartsObj) return state;
         
         const currentCart = merchantCartsObj[activeCartId];
@@ -314,7 +306,7 @@ merchantCarts: {
         return {
           merchantCarts: {
             ...state.merchantCarts,
-            [merchantId]: {
+            [currentMerchantId]: {
               ...merchantCartsObj,
               [activeCartId]: {
                 ...currentCart,
@@ -327,13 +319,10 @@ merchantCarts: {
       }),
       
       checkoutCart: () => set((state) => {
-        const { activeCartId } = state;
-        if (!activeCartId) return state;
+        const { activeCartId, currentMerchantId } = state;
+        if (!activeCartId || !currentMerchantId) return state;
         
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return state;
-        
-        const merchantCartsObj = state.merchantCarts[merchantId];
+        const merchantCartsObj = state.merchantCarts[currentMerchantId];
         if (!merchantCartsObj) return state;
         
         // ลบตะกร้าที่ชำระเงินแล้ว
@@ -346,7 +335,7 @@ merchantCarts: {
         return {
           merchantCarts: {
             ...state.merchantCarts,
-            [merchantId]: remainingCarts
+            [currentMerchantId]: remainingCarts
           },
           activeCartId: newActiveCartId,
         };
@@ -365,45 +354,42 @@ merchantCarts: {
       resetAll: () => set({
         merchantCarts: {},
         activeCartId: null,
+        currentMerchantId: null,
       }),
       
       // Selectors (คำนวณค่าจาก state)
       getActiveCart: () => {
         const state = get();
-        if (!state.activeCartId) return null;
+        if (!state.activeCartId || !state.currentMerchantId) return null;
         
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return null;
-        
-        const merchantCarts = state.
-merchantCarts[merchantId];
+        const merchantCarts = state.merchantCarts[state.currentMerchantId];
         return merchantCarts ? merchantCarts[state.activeCartId] : null;
       },
       
       // ดึงจำนวนตะกร้าของร้านค้าที่เลือก
       getCartCount: () => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return 0;
+        const state = get();
+        if (!state.currentMerchantId) return 0;
         
-        const merchantCarts = get().merchantCarts[merchantId];
+        const merchantCarts = state.merchantCarts[state.currentMerchantId];
         return merchantCarts ? Object.keys(merchantCarts).length : 0;
       },
       
       // ดึงรายการตะกร้าทั้งหมดของร้านค้าที่เลือก
       getCartList: () => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return [];
+        const state = get();
+        if (!state.currentMerchantId) return [];
         
-        const merchantCarts = get().merchantCarts[merchantId];
+        const merchantCarts = state.merchantCarts[state.currentMerchantId];
         return merchantCarts ? Object.values(merchantCarts) : [];
       },
       
       // ดึงรายการตะกร้าของร้านค้าที่เลือกเรียงตามเวลาสร้าง
       getOldestCarts: (limit = 3) => {
-        const merchantId = useUserStore.getState().selectedMerchantId;
-        if (!merchantId) return [];
+        const state = get();
+        if (!state.currentMerchantId) return [];
         
-        const merchantCarts = get().merchantCarts[merchantId];
+        const merchantCarts = state.merchantCarts[state.currentMerchantId];
         if (!merchantCarts) return [];
         
         return Object.values(merchantCarts)

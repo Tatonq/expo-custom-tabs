@@ -17,11 +17,9 @@ export default function SelectMerchantScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   
-  const { accessibleMerchants, setSelectedMerchant, employeeName } = useUserStore(state => ({
-    accessibleMerchants: state.accessibleMerchants,
-    setSelectedMerchant: state.setSelectedMerchant,
-    employeeName: state.employeeName
-  }));
+  const accessibleMerchants = useUserStore(state => state.accessibleMerchants);
+  const setSelectedMerchant = useUserStore(state => state.setSelectedMerchant);
+  const employeeName = useUserStore(state => state.employeeName);
   
   const resetMerchantCarts = useCartStore(state => state.resetMerchantCarts);
   
@@ -34,7 +32,7 @@ export default function SelectMerchantScreen() {
         [{ text: 'กลับไปหน้าเข้าสู่ระบบ', onPress: () => router.replace('/(auth)/login') }]
       );
     }
-  }, [accessibleMerchants]);
+  }, [accessibleMerchants.length, router]); // เปลี่ยนเป็น .length เพื่อป้องกัน infinite loop
   
   // ฟังก์ชันเลือกร้านค้า
   const handleSelectMerchant = async (merchant) => {

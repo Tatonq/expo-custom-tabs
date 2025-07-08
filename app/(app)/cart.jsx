@@ -1,27 +1,42 @@
-import React, { useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  Alert,
-  ActivityIndicator,
-  PanResponder,
-  Animated,
-} from 'react-native';
-import { useRouter } from 'expo-router';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Animated,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import CartItem from '../../components/CartItem';
+import CartSwitcher from '../../components/CartSwitcher';
+import MerchantHeader from '../../components/MerchantHeader';
 import useCartStore from '../../stores/cartStore';
 import useUserStore from '../../stores/userStore';
-import CartSwitcher from '../../components/CartSwitcher';
-import CartItem from '../../components/CartItem';
-import MerchantHeader from '../../components/MerchantHeader';
 
 const CartScreen = () => {
   // ดึงข้อมูลผู้ใช้และร้านค้า
-  const selectedMerchant = useUserStore(state => state.getSelectedMerchant());
+  const selectedMerchantId = useUserStore(state => state.selectedMerchantId);
+  const accessibleMerchants = useUserStore(state => state.accessibleMerchants);
   const employeeId = useUserStore(state => state.employeeId);
+  
+  // หาร้านค้าที่เลือกจาก id
+  const selectedMerchant = accessibleMerchants.find(
+    merchant => merchant.id === selectedMerchantId
+  );
+  
+  // ดึงข้อมูลและฟังก์ชันจาก Zustand store
+  const setCurrentMerchant = useCartStore(state => state.setCurrentMerchant);
+  
+  // ตั้งค่า currentMerchant ใน cartStore เมื่อ selectedMerchant เปลี่ยน
+  useEffect(() => {
+    if (selectedMerchant) {
+      setCurrentMerchant(selectedMerchant.id);
+    }
+  }, [selectedMerchant, setCurrentMerchant]);
   
   // ดึงข้อมูลและฟังก์ชันจาก Zustand store
   const { 
@@ -60,7 +75,7 @@ const CartScreen = () => {
 
     Alert.alert(
       'ยืนยันการชำระเงิน',
-      ร้านค้า: ${selectedMerchant.name}\nตะกร้า: ${activeCart.name}\nรายการทั้งหมด: ${activeCart.items.length} รายการ\nยอดรวมทั้งสิ้น: ${activeCart.total.toLocaleString()} บาท,
+      `ร้านค้า: ${selectedMerchant.name}\nตะกร้า: ${activeCart.name}\nรายการทั้งหมด: ${activeCart.items.length} รายการ\nยอดรวมทั้งสิ้น: ${activeCart.total.toLocaleString()} บาท`,
       [
         { text: 'ยกเลิก' },
         { 
@@ -197,10 +212,10 @@ const CartScreen = () => {
           <TouchableOpacity
             style={[
               styles.checkoutButton,
-              (loading  !activeCart  activeCart.items.length === 0) && styles.disabledButton
+              (loading || !activeCart || activeCart.items.length === 0) && styles.disabledButton
             ]}
             onPress={handleCheckout}
-            disabled={loading  !activeCart  activeCart.items.length === 0}
+            disabled={loading || !activeCart || activeCart.items.length === 0}
           >
             {loading ? (
               <ActivityIndicator color="white" size="small" />

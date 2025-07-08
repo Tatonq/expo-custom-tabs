@@ -1,28 +1,34 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Modal, 
-  FlatList, 
-  TextInput,
-  Alert 
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { useState } from 'react';
+import {
+    Alert,
+    FlatList,
+    Modal,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import useCartStore from '../stores/cartStore';
 import useUserStore from '../stores/userStore';
 
 // ฟังก์ชันฟอร์แมตวันที่เวลา
 const formatTime = (dateString) => {
   const date = new Date(dateString);
-  return ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')};
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
 // คอมโพเนนต์ CartSwitcher
 const CartSwitcher = () => {
   // ดึงข้อมูลร้านค้า
-  const selectedMerchant = useUserStore(state => state.getSelectedMerchant());
+  const selectedMerchantId = useUserStore(state => state.selectedMerchantId);
+  const accessibleMerchants = useUserStore(state => state.accessibleMerchants);
+  
+  // หาร้านค้าที่เลือกจาก id
+  const selectedMerchant = accessibleMerchants.find(
+    merchant => merchant.id === selectedMerchantId
+  );
   
   // ดึงข้อมูลและฟังก์ชันจาก Zustand store
   const activeCartId = useCartStore(state => state.activeCartId);
@@ -55,7 +61,7 @@ const CartSwitcher = () => {
       return;
     }
     
-    const name = newCartName.trim() || ตะกร้า ${cartCount + 1};
+    const name = newCartName.trim() || `ตะกร้า ${cartCount + 1}`;
     createCart(selectedMerchant.id, name, newCartNote, newCartType);
     setNewCartName('');
     setNewCartNote('');

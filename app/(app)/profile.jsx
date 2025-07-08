@@ -1,37 +1,34 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Alert,
-  Switch,
-  ScrollView,
-  Image
-} from 'react-native';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import useUserStore from '../../stores/userStore';
-import useCartStore from '../../stores/cartStore';
+import { useMemo, useState } from 'react';
+import {
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import MerchantHeader from '../../components/MerchantHeader';
+import useCartStore from '../../stores/cartStore';
+import useUserStore from '../../stores/userStore';
 
 export default function ProfileScreen() {
   const router = useRouter();
   
   // ดึงข้อมูลและฟังก์ชันจาก User Store
-  const { 
-    employeeId, 
-    employeeName, 
-    selectedMerchant, 
-    accessibleMerchants, 
-    resetUserData 
-  } = useUserStore(state => ({
-    employeeId: state.employeeId,
-    employeeName: state.employeeName,
-    selectedMerchant: state.getSelectedMerchant(),
-    accessibleMerchants: state.accessibleMerchants,
-    resetUserData: state.resetUserData
-  }));
+  const employeeId = useUserStore(state => state.employeeId);
+  const employeeName = useUserStore(state => state.employeeName);
+  const selectedMerchantId = useUserStore(state => state.selectedMerchantId);
+  const accessibleMerchants = useUserStore(state => state.accessibleMerchants);
+  const resetUserData = useUserStore(state => state.resetUserData);
+  
+  // หาร้านค้าที่เลือกจาก id (ใช้ useMemo เพื่อป้องกัน re-render ที่ไม่จำเป็น)
+  const selectedMerchant = useMemo(() => {
+    return accessibleMerchants.find(merchant => merchant.id === selectedMerchantId);
+  }, [accessibleMerchants, selectedMerchantId]);
   
   // ดึงฟังก์ชันจาก Cart Store
   const resetAll = useCartStore(state => state.resetAll);
@@ -96,7 +93,7 @@ export default function ProfileScreen() {
                 if (selectedMerchant?.id !== merchant.id) {
                   Alert.alert(
                     'เปลี่ยนร้านค้า',
-                    คุณต้องการเปลี่ยนไปยังร้าน ${merchant.name} หรือไม่?,
+                    `คุณต้องการเปลี่ยนไปยังร้าน ${merchant.name} หรือไม่?`,
                     [
                       { text: 'ยกเลิก' },
                       { text: 'เปลี่ยน', onPress: handleChangeMerchant }
