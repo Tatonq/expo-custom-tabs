@@ -8,7 +8,15 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "prebuild": "npx expo prebuild --clean",
+    "build:android:debug": "cd android && ./gradlew assembleDebug",
+    "build:android:release": "cd android && ./gradlew assembleRelease",
+    "build:android:bundle": "cd android && ./gradlew bundleRelease",
+    "build:android:clean": "cd android && ./gradlew clean",
+    "build:release": "npm run prebuild && npm run build:android:release",
+    "build:bundle": "npm run prebuild && npm run build:android:bundle",
+    "build:clean": "npm run build:android:clean && expo install --fix"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -17,7 +25,6 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "expo": "~53.0.17",
-    "expo-barcode-scanner": "^13.0.1",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
     "expo-font": "~13.3.2",
@@ -31,7 +38,7 @@
     "expo-system-ui": "~5.0.10",
     "expo-web-browser": "~14.2.0",
     "nanoid": "^5.1.5",
-    "react": "19.0.0",
+    "react": "18.2.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
     "react-native-gesture-handler": "~2.24.0",
